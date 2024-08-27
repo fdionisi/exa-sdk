@@ -1,0 +1,23 @@
+[package]
+name = "exa-sdk"
+version = "0.1.0"
+edition = "2021"
+description = "Rust SDK for the Exa API"
+license = "MIT"
+repository = "https://github.com/fdionisi/exa-sdk"
+readme = "README.md"
+keywords = ["exa", "api", "sdk", "search"]
+categories = ["api-bindings"]
+
+[dependencies]
+anyhow = "1.0.86"
+reqwest = { version = "0.12.7", features = ["json"] }
+secrecy = "0.8.0"
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0.63"
+url = "2.5.2"
+
+[dev-dependencies]
+mockito = "1.4.0"
+tokio = { version = "1.0", features = ["full"] }
+serde_json = "1.0"
