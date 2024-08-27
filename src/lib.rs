@@ -44,7 +44,8 @@ impl ExaBuilder {
     pub fn build(self) -> Result<Exa> {
         Ok(Exa {
             client: reqwest::Client::new(),
-            api_key: self.api_key.ok_or_else(|| anyhow!("api_jey is required"))?,
+            api_key: self.api_key.or_else(|| std::env::var("EXA_API_KEY").ok().map(SecretString::new))
+                .ok_or_else(|| anyhow!("API key is required. Set it explicitly or use the EXA_API_KEY environment variable"))?,
             base_url: self.base_url.unwrap_or_else(|| BASE_URL.to_string()),
         })
     }
