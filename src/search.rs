@@ -1,8 +1,6 @@
 use anyhow::Result;
-use reqwest::header::{HeaderMap, HeaderValue};
-use secrecy::ExposeSecret;
 
-use crate::{Exa, ExaError, HttpError, HttpErrorPayload};
+use crate::{Exa, ExaError};
 
 impl Exa {
     /// Performs a search request to the Exa API.
@@ -48,32 +46,7 @@ impl Exa {
     /// # }
     /// ```
     pub async fn search(&self, request: SearchRequest) -> Result<SearchResponse, ExaError> {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            "x-api-key",
-            HeaderValue::from_str(&format!("Bearer {}", self.api_key.expose_secret()))
-                .expect("couldn't create header value"),
-        );
-
-        let response = self
-            .client
-            .post(format!("{}/search", self.base_url))
-            .headers(headers)
-            .json(&request)
-            .send()
-            .await?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let payload = response.json::<HttpErrorPayload>().await?;
-            return Err(ExaError::HttpError(HttpError {
-                status: status.as_u16(),
-                payload,
-            }));
-        }
-
-        let search_response = response.json::<SearchResponse>().await?;
-        Ok(search_response)
+        self.post("/search", request).await
     }
 }
 

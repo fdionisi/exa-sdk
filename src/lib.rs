@@ -4,11 +4,14 @@ mod get_contents;
 mod search;
 
 use anyhow::{anyhow, Result};
-use secrecy::SecretString;
+use reqwest::header::{HeaderMap, HeaderValue};
+use secrecy::{ExposeSecret, SecretString};
+use serde::{de::DeserializeOwned, Serialize};
 
 pub use crate::{error::*, find_similar::*, get_contents::*, search::*};
 
 pub const BASE_URL: &str = "https://api.exa.ai";
+pub const API_KEY_HEADER: &str = "x-api-key";
 
 pub struct Exa {
     client: reqwest::Client,
@@ -27,6 +30,40 @@ impl Exa {
             api_key: None,
             base_url: None,
         }
+    }
+
+    pub(crate) async fn post<P, S, D>(&self, path: P, request: S) -> Result<D, ExaError>
+    where
+        P: Into<String>,
+        S: Serialize,
+        D: DeserializeOwned,
+    {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            API_KEY_HEADER,
+            HeaderValue::from_str(&format!("Bearer {}", self.api_key.expose_secret()))
+                .expect("couldn't create header value"),
+        );
+
+        let response = self
+            .client
+            .post(format!("{}{}", self.base_url, path.into()))
+            .headers(headers)
+            .json(&request)
+            .send()
+            .await?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let payload = response.json::<HttpErrorPayload>().await?;
+            return Err(ExaError::HttpError(HttpError {
+                status: status.as_u16(),
+                payload,
+            }));
+        }
+
+        let response = response.json::<D>().await?;
+        Ok(response)
     }
 }
 

@@ -1,9 +1,10 @@
 use anyhow::Result;
-use reqwest::header::{HeaderMap, HeaderValue};
-use secrecy::ExposeSecret;
 use url::Url;
 
-use crate::{Exa, ExaError, HttpError, HttpErrorPayload};
+use crate::{
+    search::{SearchContent, SearchResult},
+    Exa, ExaError,
+};
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 pub struct FindSimilarRequest {
@@ -27,12 +28,12 @@ pub struct FindSimilarRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exclude_text: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub contents: Option<crate::search::SearchContent>,
+    pub contents: Option<SearchContent>,
 }
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 pub struct FindSimilarResponse {
-    pub results: Vec<crate::search::SearchResult>,
+    pub results: Vec<SearchResult>,
 }
 
 impl FindSimilarRequest {
@@ -50,32 +51,7 @@ impl Exa {
         &self,
         request: FindSimilarRequest,
     ) -> Result<FindSimilarResponse, ExaError> {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            "x-api-key",
-            HeaderValue::from_str(&format!("Bearer {}", self.api_key.expose_secret()))
-                .expect("couldn't create header value"),
-        );
-
-        let response = self
-            .client
-            .post(format!("{}/findSimilar", self.base_url))
-            .headers(headers)
-            .json(&request)
-            .send()
-            .await?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let payload = response.json::<HttpErrorPayload>().await?;
-            return Err(ExaError::HttpError(HttpError {
-                status: status.as_u16(),
-                payload,
-            }));
-        }
-
-        let find_similar_response = response.json::<FindSimilarResponse>().await?;
-        Ok(find_similar_response)
+        self.post("/findSimilar", request).await
     }
 }
 

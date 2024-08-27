@@ -1,9 +1,7 @@
 use anyhow::Result;
-use reqwest::header::{HeaderMap, HeaderValue};
-use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 
-use crate::{Exa, ExaError, HttpError, HttpErrorPayload};
+use crate::{Exa, ExaError};
 
 #[derive(Debug, Serialize)]
 pub struct ContentsRequest {
@@ -59,32 +57,7 @@ impl Exa {
         &self,
         request: ContentsRequest,
     ) -> Result<ContentsResponse, ExaError> {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            "x-api-key",
-            HeaderValue::from_str(&format!("Bearer {}", self.api_key.expose_secret()))
-                .expect("couldn't create header value"),
-        );
-
-        let response = self
-            .client
-            .post(format!("{}/contents", self.base_url))
-            .headers(headers)
-            .json(&request)
-            .send()
-            .await?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let payload = response.json::<HttpErrorPayload>().await?;
-            return Err(ExaError::HttpError(HttpError {
-                status: status.as_u16(),
-                payload,
-            }));
-        }
-
-        let contents_response = response.json::<ContentsResponse>().await?;
-        Ok(contents_response)
+        self.post("/contents", request).await
     }
 }
 
