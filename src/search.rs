@@ -76,7 +76,7 @@ pub struct SearchResult {
     /// Author of the result, if available
     pub author: Option<String>,
     /// Relevance score of the result
-    pub score: f64,
+    pub score: Option<f64>,
     pub id: String,
     pub text: Option<String>,
     pub highlights: Option<Vec<String>>,
@@ -123,9 +123,16 @@ pub struct SearchRequest {
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 pub struct SearchContent {
-    pub text: Option<SearchContentText>,
+    pub text: Option<SearchContentTextType>,
     pub highlights: Option<SearchHighlights>,
     pub summary: Option<SearchSummary>,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(untagged)]
+pub enum SearchContentTextType {
+    Bool(bool),
+    Object(SearchContentText),
 }
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
@@ -161,7 +168,7 @@ pub struct SearchSummary {
     pub query: Option<String>,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SearchKind {
     Neural,
@@ -220,7 +227,7 @@ mod tests {
         assert_eq!(response.results.len(), 1);
         assert_eq!(response.results[0].title, "Test Result");
         assert_eq!(response.results[0].url, "https://example.com");
-        assert_eq!(response.results[0].score, 0.95);
+        assert_eq!(response.results[0].score, Some(0.95));
         assert!(response.autoprompt_string.is_none());
 
         Ok(())

@@ -4,7 +4,10 @@ mod get_contents;
 mod search;
 
 use anyhow::{anyhow, Result};
-use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    Response,
+};
 use secrecy::{ExposeSecret, SecretString};
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -38,12 +41,7 @@ impl Exa {
         S: Serialize,
         D: DeserializeOwned,
     {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            API_KEY_HEADER,
-            HeaderValue::from_str(&format!("Bearer {}", self.api_key.expose_secret()))
-                .expect("couldn't create header value"),
-        );
+        let headers = self.build_headers();
 
         let response = self
             .client
@@ -53,18 +51,37 @@ impl Exa {
             .send()
             .await?;
 
-        let status = response.status();
-        if !status.is_success() {
-            let payload = response.json::<HttpErrorPayload>().await?;
-            return Err(ExaError::HttpError(HttpError {
-                status: status.as_u16(),
-                payload,
-            }));
-        }
-
-        let response = response.json::<D>().await?;
-        Ok(response)
+        handle_response(response).await
     }
+
+    fn build_headers(&self) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            API_KEY_HEADER,
+            HeaderValue::from_str(&self.api_key.expose_secret())
+                .expect("couldn't create header value"),
+        );
+        headers
+    }
+}
+
+async fn handle_response<D>(response: Response) -> Result<D, ExaError>
+where
+    D: DeserializeOwned,
+{
+    let status = response.status();
+    if !status.is_success() {
+        let text = response.text().await?;
+        dbg!(&text);
+        let payload = serde_json::from_str::<HttpErrorPayload>(&text).unwrap();
+        return Err(ExaError::HttpError(HttpError {
+            status: status.as_u16(),
+            payload,
+        }));
+    }
+
+    let response = response.json::<D>().await?;
+    Ok(response)
 }
 
 impl ExaBuilder {

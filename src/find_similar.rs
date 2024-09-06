@@ -104,7 +104,7 @@ mod tests {
         assert_eq!(response.results[0].id, "test_id");
         assert_eq!(response.results[0].title, "Test Title");
         assert_eq!(response.results[0].url, "https://example.com");
-        assert_eq!(response.results[0].score, 0.95);
+        assert_eq!(response.results[0].score, Some(0.95));
         assert_eq!(
             response.results[0].published_date,
             Some("2023-01-01".to_string())
