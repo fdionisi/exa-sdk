@@ -85,7 +85,7 @@ pub struct SearchResult {
 }
 
 /// Represents a search request to the Exa API
-#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct SearchRequest {
     /// The search query string
     pub query: String,
@@ -118,35 +118,39 @@ pub struct SearchRequest {
     /// Strings to exclude from webpage text (max 1 string, 5 words)
     #[serde(skip_serializing_if = "Option::is_none", rename = "excludeText")]
     pub exclude_text: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub contents: Option<SearchContent>,
 }
 
-#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct SearchContent {
-    pub text: Option<SearchContentTextType>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<SearchContentText>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub highlights: Option<SearchHighlights>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<SearchSummary>,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 #[serde(untagged)]
 pub enum SearchContentTextType {
     Bool(bool),
     Object(SearchContentText),
 }
 
-#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct SearchContentText {
     /// Max length in characters for the text returned
-    #[serde(rename = "maxCharacters")]
+    #[serde(skip_serializing_if = "Option::is_none", rename = "maxCharacters")]
     pub max_characters: Option<u32>,
     /// Whether HTML tags, which can help the LLM understand structure of text, should be included. Default false
-    #[serde(rename = "includeHtmlTags")]
+    #[serde(skip_serializing_if = "Option::is_none", rename = "includeHtmlTags")]
     pub include_html_tags: Option<bool>,
 }
 
 /// Represents the highlights configuration for search results
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct SearchHighlights {
     /// The number of sentences to be returned in each snippet. Default 5
     #[serde(rename = "numSentences")]
@@ -159,7 +163,7 @@ pub struct SearchHighlights {
 }
 
 /// Represents a summary of a webpage
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct SearchSummary {
     /// Summary of the webpage
     pub summary: String,
@@ -168,7 +172,7 @@ pub struct SearchSummary {
     pub query: Option<String>,
 }
 
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SearchKind {
     Neural,
@@ -185,8 +189,8 @@ mod tests {
 
     fn setup(base_url: String) -> Result<Exa> {
         Ok(Exa::builder()
-            .api_key("test_key".to_string())
-            .base_url(base_url)
+            .with_api_key("test_key".to_string())
+            .with_base_url(base_url)
             .build()?)
     }
 

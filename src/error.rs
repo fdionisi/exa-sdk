@@ -2,8 +2,10 @@ use std::fmt;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExaError {
+    #[error("Io error: {0}")]
+    Io(#[from] std::io::Error),
     #[error("Client error: {0}")]
-    ClientError(#[from] reqwest::Error),
+    ClientError(#[from] http_client::http::Error),
     #[error("HTTP error: {0}")]
     HttpError(HttpError),
 }
@@ -16,8 +18,9 @@ pub struct HttpError {
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct HttpErrorPayload {
-    pub code: String,
-    pub message: String,
+    #[serde(rename = "requestId")]
+    pub request_id: String,
+    pub error: String,
 }
 
 impl fmt::Display for HttpError {
@@ -25,7 +28,7 @@ impl fmt::Display for HttpError {
         write!(
             f,
             "{} - {} - {}",
-            self.status, self.payload.code, self.payload.message
+            self.status, self.payload.request_id, self.payload.error
         )
     }
 }
